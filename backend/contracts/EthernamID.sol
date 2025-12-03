@@ -12,6 +12,16 @@ contract EthernamID is ERC721, Ownable {
     
     IERC20 usdc = IERC20(_usdcAddress);
   
+    struct Referral {
+        address referralAddress;
+        uint256 balanceToClaim;
+    }
+
+    mapping(bytes => Referral) private referrals;
+
+    event ReferralRegistered(bytes referralCode, address referralAddress);
+    event ReferralRemoved(bytes referralCode, address referralAddress);
+  
     /**
      * @dev Smart Contract Constructor
      * @param initialOwner Smart Contract Owner
@@ -31,5 +41,16 @@ contract EthernamID is ERC721, Ownable {
     function _getUsdcBalanceOf(address _user) internal view returns (uint256) {
         return usdc.balanceOf(_user);
     }
+
+    function addReferral(bytes calldata _refCode, address _refAddress) external onlyOwner {
+        require(referrals[_refCode].balanceToClaim == 0, "Referral has balance to claim, you can't change the address");
+        referrals[_refCode].referralAddress = _refAddress;
+        emit ReferralRegistered(_refCode, _refAddress);
+    }
+
+    function removeReferral(bytes memory _refCode) external onlyOwner {
+        require(referrals[_refCode].balanceToClaim == 0, "Referral has balance to claim, you can't change the address");
+        emit ReferralRemoved(_refCode, referrals[_refCode].referralAddress);
+        referrals[_refCode].referralAddress = address(0);
     }
 }
