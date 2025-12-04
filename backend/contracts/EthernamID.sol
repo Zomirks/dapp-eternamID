@@ -73,9 +73,14 @@ contract EthernamID is ERC721, Ownable {
         emit ReferralRegistered(_refCode, _refAddress);
     }
 
-    function removeReferral(bytes memory _refCode) external onlyOwner {
-        require(referrals[_refCode].balanceToClaim == 0, "Referral has balance to claim, you can't change the address");
-        emit ReferralRemoved(_refCode, referrals[_refCode].referralAddress);
-        referrals[_refCode].referralAddress = address(0);
+    function removeReferral(bytes8 _refCode) external onlyOwner {
+        address refAddress = refCodeToAddress[_refCode];
+        require(refAddress != address(0), "This referral code doesn't exist");
+        require(referrals[refAddress].balanceToClaim == 0, "Referral has balance to claim, you can't remove it");
+        
+        emit ReferralRemoved(_refCode, refAddress);
+        
+        delete refCodeToAddress[_refCode];
+        delete referrals[refAddress];
     }
 }
