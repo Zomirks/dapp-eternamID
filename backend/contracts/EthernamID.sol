@@ -62,9 +62,14 @@ contract EthernamID is ERC721, Ownable {
         return usdc.balanceOf(_user);
     }
 
-    function addReferral(bytes calldata _refCode, address _refAddress) external onlyOwner {
-        require(referrals[_refCode].balanceToClaim == 0, "Referral has balance to claim, you can't change the address");
-        referrals[_refCode].referralAddress = _refAddress;
+    function addReferral(bytes8 _refCode, address _refAddress) external onlyOwner {
+        require(refCodeToAddress[_refCode] == address(0), "Code is already in use");
+        require(_refAddress != address(0), "Invalid address");
+        require(_refCode != bytes8(0), "Invalid referral code");
+        
+        refCodeToAddress[_refCode] = _refAddress;
+        referrals[_refAddress].isActive = true;
+
         emit ReferralRegistered(_refCode, _refAddress);
     }
 
