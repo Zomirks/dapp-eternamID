@@ -6,21 +6,11 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract EthernamID is ERC721, Ownable {
-    address public teamWallet;
+    address private teamWallet;
     uint256 private _nextTokenId;
-    uint256 public constant _mintPrice = 120 * 10^6;
-    uint256 public constant referralAmount = 20 * 10^6;
-    address constant _usdcAddress = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    uint256 private constant _mintPrice = 120 * 10^6;
     
-    IERC20 usdc = IERC20(_usdcAddress);
-  
-    struct Referral {
-        bool isActive;
-        uint256 balanceToClaim;
-    }
-
-    mapping(address => Referral) private referrals;
-    mapping(bytes8 => address) private refCodeToAddress;
+    IERC20 usdc;
 
     event ReferralRegistered(bytes8 referralCode, address referralAddress);
     event ReferralRemoved(bytes8 referralCode, address referralAddress);
@@ -29,8 +19,9 @@ contract EthernamID is ERC721, Ownable {
      * @dev Smart Contract Constructor
      * @param _teamWallet Wallet of the team
      */
-    constructor(address _teamWallet) ERC721("Ethernam ID", "EID") Ownable(msg.sender) {
+    constructor(address _teamWallet, address _usdcAddress) ERC721("Ethernam ID", "EID") Ownable(msg.sender) {
         teamWallet = _teamWallet;
+        usdc = IERC20(_usdcAddress);
     }
     
     /**
