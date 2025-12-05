@@ -13,8 +13,7 @@ contract EthernamID is ERC721, Ownable {
     
     IERC20 usdc;
 
-    event ReferralRegistered(bytes8 referralCode, address referralAddress);
-    event ReferralRemoved(bytes8 referralCode, address referralAddress);
+    event EthernamIDMinted(address indexed minter, uint256 indexed tokenId, address indexed referrer);
   
     /**
      * @dev Smart Contract Constructor
@@ -37,6 +36,7 @@ contract EthernamID is ERC721, Ownable {
         _safeMint(msg.sender, tokenId);
 
         ++_nextTokenId;
+        emit EthernamIDMinted(msg.sender, tokenId, address(0));
     }
 
     function mintEthernamID(bytes8 _refCode) external {
@@ -52,6 +52,7 @@ contract EthernamID is ERC721, Ownable {
         referrals[refCodeToAddress[_refCode]].balanceToClaim += referralAmount;
         
         ++_nextTokenId;
+        emit EthernamIDMinted(msg.sender, tokenId, referrer);
     }
 
     function _getUsdcBalanceOf(address _user) internal view returns (uint256) {
