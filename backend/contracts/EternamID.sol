@@ -8,6 +8,12 @@ import "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
+/**
+ * @title EternamID
+ * @author Eternam Team
+ * @notice A NFT Collection to unlock data stored for each NFT with on-chain SVG image and USDC-based minting with referral system
+ * @dev Implements ERC721 with USDC payments, referral rewards, and fully on-chain metadata
+ */
 contract EternamID is ERC721, Ownable, ReentrancyGuardTransient {
     using Strings for uint256;
 
@@ -34,8 +40,10 @@ contract EternamID is ERC721, Ownable, ReentrancyGuardTransient {
     event EternamIDMinted(address indexed minter, uint256 indexed tokenId, address indexed referrer);
   
     /**
-     * @dev Smart Contract Constructor
-     * @param _teamWallet Wallet of the team
+     * @notice Initializes the EternamID contract
+     * @dev Sets up ERC721, ownership, USDC interface and encodes the SVG image
+     * @param _teamWallet Address of the team wallet that receives mint payments
+     * @param _usdcAddress Address of the USDC token contract
      */
     constructor(address _teamWallet, address _usdcAddress) ERC721("Eternam ID", "EID") Ownable(msg.sender) {
         teamWallet = _teamWallet;
@@ -44,7 +52,8 @@ contract EternamID is ERC721, Ownable, ReentrancyGuardTransient {
     }
     
     /**
-     * @dev message sender can mint
+     * @notice Mints an EternamID NFT without referral
+     * @dev Transfers MINT_PRICE USDC from caller to contract, mints NFT, credits team wallet
      */
     function mintEternamID() external {
         require(_getUsdcBalanceOf(msg.sender) >= MINT_PRICE, "Not enough balance");
@@ -59,6 +68,11 @@ contract EternamID is ERC721, Ownable, ReentrancyGuardTransient {
         emit EternamIDMinted(msg.sender, tokenId, address(0));
     }
 
+    /**
+     * @notice Mints an EternamID NFT with a referral code
+     * @dev Transfers MINT_PRICE USDC from msg.sender, splits payment between team and referrer
+     * @param _refCode The referral code to apply for the mint
+     */
     function mintEternamID(string memory _refCode) external {
         address referrer = refCodeToAddress[_refCode];
         require(referrer != address(0), "Invalid referral code");
@@ -75,10 +89,22 @@ contract EternamID is ERC721, Ownable, ReentrancyGuardTransient {
         emit EternamIDMinted(msg.sender, tokenId, referrer);
     }
 
+    /**
+     * @notice Gets the USDC balance of a user
+     * @dev Internal helper function to check USDC balance
+     * @param _user Address to check balance for
+     * @return The USDC balance of the user
+     */
     function _getUsdcBalanceOf(address _user) internal view returns (uint256) {
         return usdc.balanceOf(_user);
     }
 
+    /**
+     * @notice Register a referral code for an address
+     * @dev Only callable by owner. Each address can only have one code, each code can only be used once
+     * @param _refCode The referral code to register
+     * @param _refAddress The address that will receive referral rewards
+     */
     function addReferral(string memory _refCode, address _refAddress) external onlyOwner {
         require(refCodeToAddress[_refCode] == address(0), "Code is already in use");
         require(bytes(addressToRefCode[_refAddress]).length == 0, "Address has already a Referral code");
@@ -90,6 +116,11 @@ contract EternamID is ERC721, Ownable, ReentrancyGuardTransient {
         emit ReferralRegistered(_refCode, _refAddress);
     }
 
+    /**
+     * @notice Removes an existing referral code
+     * @dev Only callable by owner. Clears both mappings for the referral
+     * @param _refCode The referral code to remove
+     */
     function removeReferral(string memory _refCode) external onlyOwner {
         address refAddress = refCodeToAddress[_refCode];
         require(refAddress != address(0), "This referral code doesn't exist");
@@ -100,6 +131,10 @@ contract EternamID is ERC721, Ownable, ReentrancyGuardTransient {
         delete addressToRefCode[refAddress];
     }
 
+    /**
+     * @notice Allows referrer to claim their accumulated USDC balance
+     * @dev Protected against reentrancy. Sets balance to 0 before transfer (CEI pattern)
+     */
     function claimBalance() external nonReentrant {
         uint256 amount = balanceToClaim[msg.sender];
         require(amount > 0, "You have nothing to claim");
@@ -110,14 +145,29 @@ contract EternamID is ERC721, Ownable, ReentrancyGuardTransient {
         emit BalanceClaimed(msg.sender, amount);
     }
 
+    /**
+     * @notice Returns the claimable USDC balance for a given address
+     * @param _addr The address to check
+     * @return The amount of USDC available to claim
+     */
     function getBalanceToClaim(address _addr) external view returns (uint256){
         return balanceToClaim[_addr];
     }
 
+    /**
+     * @notice Returns the total USDC balance held by this contract
+     * @return The USDC balance of this contract
+     */
     function getContractBalance() external view returns (uint256){
         return usdc.balanceOf(address(this));
     }
 
+    /**
+     * @notice Returns the metadata URI for a given token
+     * @dev Generates fully on-chain JSON metadata with embedded SVG image
+     * @param _tokenId The token ID to get metadata for
+     * @return The base64-encoded JSON metadata URI
+     */
     function tokenURI(uint256 _tokenId) public view override returns (string memory) {
         require(_ownerOf(_tokenId) != address(0), "Token didn't exist");
 
@@ -138,19 +188,39 @@ contract EternamID is ERC721, Ownable, ReentrancyGuardTransient {
         return string(abi.encodePacked(_baseURI(), json));
     }
 
+    /**
+     * @notice Encodes an SVG string to base64
+     * @dev Pure function for SVG encoding
+     * @param svg The SVG string to encode
+     * @return The base64-encoded SVG string
+     */
     function _svgToImageURI(string memory svg) internal pure returns (string memory) {
         string memory svgBase64Encoded = Base64.encode(bytes(string(abi.encodePacked(svg))));
         return svgBase64Encoded;
     }
 
+    /**
+     * @notice Returns the base URI for token metadata
+     * @dev Overrides ERC721 _baseURI to return data URI scheme
+     * @return The base URI string for JSON metadata
+     */
     function _baseURI() internal pure override returns (string memory) {
         return "data:application/json;base64,";
     }
 
+    /**
+     * @notice Returns the base64-encoded SVG image
+     * @return The stored base64-encoded SVG string
+     */
     function getSVG() public view returns (string memory) {
         return imageURI;
     }
 
+    /**
+     * @notice Returns the total number of tokens minted
+     * @dev Equivalent to the current tokenId value
+     * @return The total supply of minted tokens
+     */
     function totalSupply() external view returns (uint256) {
         return tokenId;
     }
