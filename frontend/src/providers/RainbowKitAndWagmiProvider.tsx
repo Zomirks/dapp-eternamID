@@ -1,20 +1,10 @@
 'use client';
 import '@rainbow-me/rainbowkit/styles.css';
 
-import {
-	getDefaultConfig,
-	RainbowKitProvider,
-	darkTheme 
-} from '@rainbow-me/rainbowkit';
+import { getDefaultConfig, RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
 import { WagmiProvider } from 'wagmi';
-import {
-	hardhat,
-	sepolia
-} from 'wagmi/chains';
-import {
-	QueryClientProvider,
-	QueryClient,
-} from "@tanstack/react-query";
+import { hardhat, sepolia } from 'wagmi/chains';
+import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 
 if (!process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID) {
 	throw new Error('NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is not defined');
@@ -33,14 +23,7 @@ const RainbowKitAndWagmiProvider = ({ children }: { children: React.ReactNode })
 	return (
 		<WagmiProvider config={config}>
 			<QueryClientProvider client={queryClient}>
-				<RainbowKitProvider
-					theme={darkTheme({
-					accentColor: '#7b3fe4',
-					accentColorForeground: 'white',
-					borderRadius: 'medium',
-					fontStack: 'rounded',
-					overlayBlur: 'small',
-					})}>
+				<RainbowKitProvider theme={darkTheme()}>
 					{children}
 				</RainbowKitProvider>
 			</QueryClientProvider>
