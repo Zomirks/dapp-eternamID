@@ -7,7 +7,7 @@ const Footer = () => {
                 </div>
                 <div className="flex items-center gap-6 text-xs text-white/30">
                     <a href="#" className="hover:text-white/60 transition-colors">Mentions légales</a>
-                    <a href="#" className="hover:text-white/60 transition-colors">RGPD</a>
+                    <a href="/rgpd" className="hover:text-white/60 transition-colors">RGPD</a>
                     <a href="/conditions-generales-de-ventes" className="hover:text-white/60 transition-colors">Conditions Générales de vente</a>
                 </div>
             </div>
