@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
+import { keccak256, encodePacked } from 'viem';
 import { CONTRACT_USDC_ADDRESS, CONTRACT_USDC_ABI, CONTRACT_ETERNAMID_ADDRESS, CONTRACT_ETERNAMID_ABI } from "@/utils/constants";
 import { useWriteContract, useReadContract, useWaitForTransactionReceipt, useAccount } from 'wagmi'
 import { Calendar as CalendarIcon, Sparkles, Check, Loader2 } from "lucide-react"
@@ -15,6 +16,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "../ui/textarea";
 
 interface MintEternamIDProps {
     totalSupply: number;
@@ -22,12 +24,15 @@ interface MintEternamIDProps {
 }
 
 const MINT_PRICE = BigInt(120 * 10 ** 6); // 120 USDC
+const MAX_TEXTAREA_LENGTH = 500;
 
 const MintEternamID = ({ totalSupply, onMintSuccess }: MintEternamIDProps) => {
     const { address } = useAccount();
 
     const [inputFirstName, setInputFirstName] = useState('');
     const [inputName, setInputName] = useState('');
+    const [inputDescription, setInputDescription] = useState('');
+    const [inputPrivateNotes, setInputPrivateNotes] = useState('');
     const [inputRefCode, setInputRefCode] = useState('');
     const [inputFatherID, setInputFatherID] = useState<number | ''>('');
     const [inputMotherID, setInputMotherID] = useState<number | ''>('');
@@ -35,6 +40,8 @@ const MintEternamID = ({ totalSupply, onMintSuccess }: MintEternamIDProps) => {
     const [calendarOpen, setCalendarOpen] = useState(false);
     const [acceptedCGV, setAcceptedCGV] = useState(false);
     const [validationError, setValidationError] = useState('');
+
+    const [currentHash, setCurrentHash] = useState<`0x${string}` | null>(null);
 
     const { data: allowance, refetch: refetchAllowance } = useReadContract({
         address: CONTRACT_USDC_ADDRESS,
@@ -64,6 +71,50 @@ const MintEternamID = ({ totalSupply, onMintSuccess }: MintEternamIDProps) => {
         hash: mintHash,
     });
 
+    const generateHash = (): `0x${string}` => {
+        const dataToHash = encodePacked(
+            ['string', 'string', 'string', 'string', 'string'],
+            [
+                inputFirstName,
+                inputName,
+                inputDescription,
+                inputPrivateNotes,
+                date?.toISOString() || '',
+            ]
+        );
+        return keccak256(dataToHash);
+    };
+
+    const saveUserToDatabase = async (hash: string) => {
+        try {
+            const response = await fetch('/api/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    nft_id: totalSupply + 1,
+                    firstname: inputFirstName,
+                    name: inputName,
+                    description: inputDescription,
+                    private_notes: inputPrivateNotes,
+                    hash: hash,
+                    bornAt: date?.toISOString(),
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Erreur lors de la sauvegarde');
+            }
+
+            const user = await response.json();
+            console.log('User sauvegardé:', user);
+
+        } catch (error) {
+            console.error('Erreur sauvegarde BDD:', error);
+        }
+    };
+
     useEffect(() => {
         if (isApproveSuccess) {
             refetchAllowance();
@@ -71,11 +122,13 @@ const MintEternamID = ({ totalSupply, onMintSuccess }: MintEternamIDProps) => {
     }, [isApproveSuccess, refetchAllowance]);
 
     useEffect(() => {
-        if (isMintSuccess) {
-            resetForm();
-            onMintSuccess?.();
+        if (isMintSuccess && mintHash && currentHash) {
+            saveUserToDatabase(currentHash).then(() => {
+                resetForm();
+                onMintSuccess?.();
+            });
         }
-    }, [isMintSuccess, onMintSuccess]);
+    }, [isMintSuccess, mintHash, currentHash]);
 
     useEffect(() => {
         if (inputFatherID && inputMotherID && inputFatherID === inputMotherID) {
@@ -88,12 +141,40 @@ const MintEternamID = ({ totalSupply, onMintSuccess }: MintEternamIDProps) => {
     const resetForm = () => {
         setInputFirstName('');
         setInputName('');
+        setInputDescription('');
+        setInputPrivateNotes('');
         setInputRefCode('');
         setInputFatherID('');
         setInputMotherID('');
         setDate(undefined);
         setAcceptedCGV(false);
         setValidationError('');
+        setCurrentHash(null);
+    };
+
+    function formatDate(date: Date | undefined) {
+        if (!date) {
+            return ""
+        }
+
+        return date.toLocaleDateString("fr-FR", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+        })
+    }
+
+    const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const value = e.target.value;
+        if (value.length <= MAX_TEXTAREA_LENGTH) {
+            setInputDescription(value);
+        }
+    };
+    const handlePrivateNotesChanges = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const value = e.target.value;
+        if (value.length <= MAX_TEXTAREA_LENGTH) {
+            setInputPrivateNotes(value);
+        }
     };
 
     const needsApproval = (allowance ?? 0n) < MINT_PRICE;
@@ -110,13 +191,21 @@ const MintEternamID = ({ totalSupply, onMintSuccess }: MintEternamIDProps) => {
     const handleMint = (e: React.FormEvent) => {
         e.preventDefault();
 
+        const hash = generateHash();
+        setCurrentHash(hash);
+
         if (validationError) return;
 
         mintNFT({
             address: CONTRACT_ETERNAMID_ADDRESS,
             abi: CONTRACT_ETERNAMID_ABI,
             functionName: 'mintEternamID',
-            args: [inputRefCode, inputFatherID || 0, inputMotherID || 0],
+            args: [
+                hash,
+                inputRefCode ?? "",
+                inputFatherID ?? 0,
+                inputMotherID ?? 0
+            ]
         });
     };
 
@@ -246,6 +335,38 @@ const MintEternamID = ({ totalSupply, onMintSuccess }: MintEternamIDProps) => {
                         </div>
                     </FieldSet>
 
+                    <FieldSet className="space-y-4 mt-4">
+                        <Field>
+                            <FieldLabel htmlFor="public-desc-input" className="text-sm font-medium">
+                                Description
+                            </FieldLabel>
+                            <FieldDescription>Ces données seront publiques</FieldDescription>
+                            <Textarea
+                                id="public-desc-input"
+                                value={inputDescription}
+                                onChange={(e) => handleDescriptionChange(e)}
+                                className="mt-1.5"
+                            />
+                        </Field>
+                    </FieldSet>
+
+                    <FieldSeparator />
+
+                    <FieldSet className="space-y-4 mt-4">
+                        <Field>
+                            <FieldLabel htmlFor="private-desc-input" className="text-sm font-medium">
+                                Notes privées
+                            </FieldLabel>
+                            <FieldDescription>Ces données seront accessibles uniquement avec le NFT</FieldDescription>
+                            <Textarea
+                                id="private-desc-input"
+                                value={inputPrivateNotes}
+                                onChange={(e) => handlePrivateNotesChanges(e)}
+                                className="mt-1.5"
+                            />
+                        </Field>
+                    </FieldSet>
+
                     <FieldSeparator />
 
                     <FieldSet className="space-y-4 mt-4">
@@ -286,8 +407,8 @@ const MintEternamID = ({ totalSupply, onMintSuccess }: MintEternamIDProps) => {
                         />
                         <div className="space-y-1 leading-none">
                             <FieldLabel htmlFor="input-accept-cgv" className="text-sm font-normal cursor-pointer">
-                                J'accepte les{" "}
-                                <a href="#" className="text-primary hover:underline">
+                                J'accepte les
+                                <a href="/conditions-generales-de-ventes" target="_blank" className="text-primary hover:underline">
                                     Conditions Générales de Vente
                                 </a>
                             </FieldLabel>

@@ -38,13 +38,15 @@ contract EternamID is ERC721, Ownable, ReentrancyGuardTransient {
         uint256 motherId;
     }
     mapping(uint256 => Parents) private tokenParents;
+    mapping(uint256 => bytes32) private tokenHashes;
 
-    event ReferralRegistered(string indexed referralCode, address indexed referralAddress);
-    event ReferralRemoved(string indexed referralCode, address indexed referralAddress);
+    event ReferralRegistered(string referralCode, address indexed referralAddress);
+    event ReferralRemoved(string referralCode, address indexed referralAddress);
     event BalanceClaimed(address indexed claimer, uint256 balanceClaimed);
-    event EternamIDMinted(address indexed minter, uint256 indexed tokenId, address indexed referrer);
+    event EternamIDMinted(bytes32 dataHash, address indexed minter, uint256 indexed tokenId, address indexed referrer);
     event ParentsUpdated(uint256 indexed tokenId, uint256 fatherId, uint256 motherId);
     event CollectionDescriptionUpdated(string newDescription);
+    event HashUpdated(uint256 indexed tokenId, bytes32 newHash);
   
     /**
      * @notice Initializes the EternamID contract
@@ -65,13 +67,15 @@ contract EternamID is ERC721, Ownable, ReentrancyGuardTransient {
     * @param _refCode The referral code to apply (empty string if none)
     * @param _fatherId The father's token ID (0 if unknown/not set)
     * @param _motherId The mother's token ID (0 if unknown/not set)
+    * @param _hash The data hash associated with this NFT (bytes32, can be 0x0 if not set)
     */
-    function mintEternamID(string calldata _refCode, uint256 _fatherId, uint256 _motherId) external {
+    function mintEternamID(bytes32 _hash, string calldata _refCode, uint256 _fatherId, uint256 _motherId) external {
         uint256 currentTokenId = tokenId;
         require(_fatherId <= currentTokenId && _motherId <= currentTokenId, "Parent NFT doesn't exist");
         require(_fatherId == 0 || _motherId == 0 || _fatherId != _motherId, "Parents must be different");
+        require(_hash != bytes32(0), "Hash is required");
         address referrer = refCodeToAddress[_refCode];
-        require(referrer != msg.sender, "Cannot use own referral code");
+        require(referrer != msg.sender, "Can't use own referral code");
         require(_getUsdcBalanceOf(msg.sender) >= MINT_PRICE, "Not enough balance");
         require(usdc.allowance(msg.sender, address(this)) >= MINT_PRICE, "Not enough USDC approved");
         require(usdc.transferFrom(msg.sender, address(this), MINT_PRICE), "USDC transfer failed");
@@ -93,9 +97,11 @@ contract EternamID is ERC721, Ownable, ReentrancyGuardTransient {
             emit ParentsUpdated(currentTokenId, _fatherId, _motherId);
         }
 
+        tokenHashes[currentTokenId] = _hash;
+
         _safeMint(msg.sender, currentTokenId);
 
-        emit EternamIDMinted(msg.sender, currentTokenId, referrer);
+        emit EternamIDMinted(_hash, msg.sender, currentTokenId, referrer);
     }
 
     /**
@@ -163,12 +169,22 @@ contract EternamID is ERC721, Ownable, ReentrancyGuardTransient {
     function setParents(uint256 _tokenId, uint256 _fatherId, uint256 _motherId) external onlyOwner {
         require(_ownerOf(_tokenId) != address(0), "TokenId doesn't exist");
         require(_fatherId <= tokenId && _motherId <= tokenId, "Parent Token ID doesn't exist");
-        require(_fatherId != _tokenId && _motherId != _tokenId, "Cannot be self parent");
+        require(_fatherId != _tokenId && _motherId != _tokenId, "Can't be self parent");
         require(_fatherId == 0 || _motherId == 0 || _fatherId != _motherId, "Parents must be different");
 
         tokenParents[_tokenId] = Parents(_fatherId, _motherId);
         
         emit ParentsUpdated(_tokenId, _fatherId, _motherId);
+    }
+
+    /**
+     * @notice Returns the hash associated with a token
+     * @param _tokenId The token ID to get hash for
+     * @return The hash associated with the token
+     */
+    function getTokenHash(uint256 _tokenId) external view returns (bytes32) {
+        require(_ownerOf(_tokenId) != address(0), "TokenId doesn't exist");
+        return tokenHashes[_tokenId];
     }
 
     /**
@@ -203,6 +219,24 @@ contract EternamID is ERC721, Ownable, ReentrancyGuardTransient {
     }
 
     /**
+     * @notice Converts bytes32 to hexadecimal string with 0x prefix
+     * @dev Internal helper function for hash display in metadata
+     * @param _bytes32 The bytes32 value to convert
+     * @return The hexadecimal string representation with 0x prefix (66 characters)
+     */
+    function _bytes32ToHexString(bytes32 _bytes32) internal pure returns (string memory) {
+        bytes memory hexChars = "0123456789abcdef";
+        bytes memory str = new bytes(66);
+        str[0] = "0";
+        str[1] = "x";
+        for (uint256 i = 0; i < 32; i++) {
+            str[2 + i * 2] = hexChars[uint8(_bytes32[i] >> 4)];
+            str[2 + i * 2 + 1] = hexChars[uint8(_bytes32[i] & 0x0f)];
+        }
+        return string(str);
+    }
+
+    /**
      * @notice Returns the metadata URI for a given token
      * @dev Generates fully on-chain JSON metadata with embedded SVG image
      * @param _tokenId The token ID to get metadata for
@@ -212,6 +246,22 @@ contract EternamID is ERC721, Ownable, ReentrancyGuardTransient {
         require(_ownerOf(_tokenId) != address(0), "Token doesn't exist");
 
         Parents memory parents = tokenParents[_tokenId];
+        bytes32 dataHash = tokenHashes[_tokenId];
+
+        // Split into parts to avoid abi.encodePacked argument limit
+        string memory attributes = string(
+            abi.encodePacked(
+                '{"trait_type": "FatherID", "value": "',
+                parents.fatherId == 0 ? "Unknown" : parents.fatherId.toString(),
+                '"},',
+                '{"trait_type": "MotherID", "value": "',
+                parents.motherId == 0 ? "Unknown" : parents.motherId.toString(),
+                '"},',
+                '{"trait_type": "Hash", "value": "',
+                _bytes32ToHexString(dataHash),
+                '"}'
+            )
+        );
 
         string memory json = Base64.encode(
             bytes(
@@ -223,12 +273,7 @@ contract EternamID is ERC721, Ownable, ReentrancyGuardTransient {
                     '", "image": "data:image/svg+xml;base64,',
                     getSVG(),
                     '", "attributes": [',
-                    '{"trait_type": "FatherID", "value": "',
-                    parents.fatherId == 0 ? "Unknown" : parents.fatherId.toString(),
-                    '"},',
-                    '{"trait_type": "MotherID", "value": "',
-                    parents.motherId == 0 ? "Unknown" : parents.motherId.toString(),
-                    '"}',
+                    attributes,
                     ']}'
                 )
             )
@@ -276,12 +321,12 @@ contract EternamID is ERC721, Ownable, ReentrancyGuardTransient {
 
     /**
      * @notice Rescues ERC20 tokens accidentally sent to this contract
-     * @dev Only callable by owner. Cannot rescue USDC to protect user funds
+     * @dev Only callable by owner. Can't rescue USDC to protect user funds
      * @param _token Address of the ERC20 token to rescue
      * @param _amount Amount of tokens to rescue
      */
     function rescueTokens(address _token, uint256 _amount) external onlyOwner {
-        require(_token != address(usdc), "Cannot rescue USDC");
+        require(_token != address(usdc), "Can't rescue USDC");
         require(IERC20(_token).transfer(owner(), _amount), "Rescue transfer failed");
     }
 }

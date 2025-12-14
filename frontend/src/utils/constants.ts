@@ -583,6 +583,12 @@ export const CONTRACT_ETERNAMID_ABI = [
         "anonymous": false,
         "inputs": [
             {
+                "indexed": false,
+                "internalType": "bytes32",
+                "name": "dataHash",
+                "type": "bytes32"
+            },
+            {
                 "indexed": true,
                 "internalType": "address",
                 "name": "minter",
@@ -602,6 +608,25 @@ export const CONTRACT_ETERNAMID_ABI = [
             }
         ],
         "name": "EternamIDMinted",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "tokenId",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "bytes32",
+                "name": "newHash",
+                "type": "bytes32"
+            }
+        ],
+        "name": "HashUpdated",
         "type": "event"
     },
     {
@@ -652,7 +677,7 @@ export const CONTRACT_ETERNAMID_ABI = [
         "anonymous": false,
         "inputs": [
             {
-                "indexed": true,
+                "indexed": false,
                 "internalType": "string",
                 "name": "referralCode",
                 "type": "string"
@@ -671,7 +696,7 @@ export const CONTRACT_ETERNAMID_ABI = [
         "anonymous": false,
         "inputs": [
             {
-                "indexed": true,
+                "indexed": false,
                 "internalType": "string",
                 "name": "referralCode",
                 "type": "string"
@@ -872,6 +897,25 @@ export const CONTRACT_ETERNAMID_ABI = [
     {
         "inputs": [
             {
+                "internalType": "uint256",
+                "name": "_tokenId",
+                "type": "uint256"
+            }
+        ],
+        "name": "getTokenHash",
+        "outputs": [
+            {
+                "internalType": "bytes32",
+                "name": "",
+                "type": "bytes32"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
                 "internalType": "address",
                 "name": "owner",
                 "type": "address"
@@ -895,6 +939,11 @@ export const CONTRACT_ETERNAMID_ABI = [
     },
     {
         "inputs": [
+            {
+                "internalType": "bytes32",
+                "name": "_hash",
+                "type": "bytes32"
+            },
             {
                 "internalType": "string",
                 "name": "_refCode",

@@ -2,17 +2,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAccount, useReadContract, usePublicClient } from 'wagmi';
+import Link from "next/link";
+import { ExternalLink } from "lucide-react";
 
 import { CONTRACT_ETERNAMID_ADDRESS, CONTRACT_ETERNAMID_ABI } from "@/utils/constants";
 
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
 interface NFTMetadata {
 	name: string;
@@ -30,7 +28,7 @@ interface NFTData {
 }
 
 const NFTBalance = () => {
-	const { address, isConnected } = useAccount();
+	const { address } = useAccount();
 	const publicClient = usePublicClient();
 
 	const [userNFTs, setUserNFTs] = useState<NFTData[]>([]);
@@ -70,9 +68,9 @@ const NFTBalance = () => {
 						args: [BigInt(i)],
 					}) as string;
 
-					// Décoder le base64
 					const base64Data = tokenURI.replace('data:application/json;base64,', '');
 					const jsonString = atob(base64Data);
+					console.log('Token', i, 'JSON:', jsonString);
 					const metadata: NFTMetadata = JSON.parse(jsonString);
 
 					nfts.push({ tokenId: i, metadata });
@@ -145,11 +143,16 @@ const NFTCard = ({ nft }: { nft: NFTData }) => {
 	const imageUrl = metadata?.image || '';
 
 	return (
-		<Card className="overflow-hidden">
+		<Card className="overflow-hidden hover:shadow-md transition-shadow">
 			<CardHeader className="pb-2">
-				<CardTitle className="text-lg">
-					{metadata?.name || `Eternam ID #${nft.tokenId}`}
-				</CardTitle>
+				<div className="flex items-center justify-between">
+					<CardTitle className="text-lg">
+						{metadata?.name || `Eternam ID #${nft.tokenId}`}
+					</CardTitle>
+					<Badge variant="outline" className="text-xs">
+						#{nft.tokenId}
+					</Badge>
+				</div>
 			</CardHeader>
 
 			<CardContent className="space-y-4">
@@ -163,15 +166,12 @@ const NFTCard = ({ nft }: { nft: NFTData }) => {
 					</div>
 				)}
 
-				{metadata?.attributes && metadata.attributes.length > 0 && (
-					<div className="flex flex-wrap gap-2">
-						{metadata.attributes.map((attr, index) => (
-							<Badge key={index} variant="outline" className="text-xs">
-								{attr.trait_type}: {attr.value}
-							</Badge>
-						))}
-					</div>
-				)}
+				<Link href={`/nft/${nft.tokenId}`}>
+					<Button variant="outline" className="w-full">
+						<ExternalLink className="mr-2 h-4 w-4" />
+						Voir les détails
+					</Button>
+				</Link>
 			</CardContent>
 		</Card>
 	);
