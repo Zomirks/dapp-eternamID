@@ -1,4 +1,4 @@
-export const CONTRACT_USDC_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+export const CONTRACT_USDC_ADDRESS = "0x7CB17B45A8c10AbFf25550Fd125f845487F2a8F5";
 export const CONTRACT_USDC_ABI = [
     {
         "inputs": [
@@ -349,7 +349,7 @@ export const CONTRACT_USDC_ABI = [
     }
 ]
 
-export const CONTRACT_ETERNAMID_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+export const CONTRACT_ETERNAMID_ADDRESS = "0x7F181B15D27294BB15AdA99687F05bd07B77545e";
 export const CONTRACT_ETERNAMID_ABI = [
     {
         "inputs": [
@@ -366,6 +366,31 @@ export const CONTRACT_ETERNAMID_ABI = [
         ],
         "stateMutability": "nonpayable",
         "type": "constructor"
+    },
+    {
+        "inputs": [],
+        "name": "AddressAlreadyHasReferralCode",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "CannotBeSelfParent",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "CannotRescueUSDC",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "CannotUseOwnReferralCode",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "ClaimTransferFailed",
+        "type": "error"
     },
     {
         "inputs": [
@@ -471,6 +496,31 @@ export const CONTRACT_ETERNAMID_ABI = [
         "type": "error"
     },
     {
+        "inputs": [],
+        "name": "HashIsRequired",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "InsufficientUSDCAllowance",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "InsufficientUSDCBalance",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "InvalidAddress",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "NothingToClaim",
+        "type": "error"
+    },
+    {
         "inputs": [
             {
                 "internalType": "address",
@@ -494,7 +544,47 @@ export const CONTRACT_ETERNAMID_ABI = [
     },
     {
         "inputs": [],
+        "name": "ParentNFTDoesNotExist",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "ParentTokenDoesNotExist",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "ParentsMustBeDifferent",
+        "type": "error"
+    },
+    {
+        "inputs": [],
         "name": "ReentrancyGuardReentrantCall",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "ReferralCodeAlreadyInUse",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "ReferralCodeDoesNotExist",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "RescueTransferFailed",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "TokenDoesNotExist",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "USDCTransferFailed",
         "type": "error"
     },
     {

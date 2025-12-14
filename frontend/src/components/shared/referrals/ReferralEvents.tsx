@@ -61,7 +61,7 @@ const ReferralEvents = () => {
                     parseAbiItem('event ReferralRegistered(string referralCode, address indexed referralAddress)'),
                     parseAbiItem('event ReferralRemoved(string referralCode, address indexed referralAddress)')
                 ],
-                fromBlock: 0n,
+                fromBlock: 9841490n,
                 toBlock: 'latest'
             });
 

@@ -13,7 +13,7 @@ if (!process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID) {
 const config = getDefaultConfig({
 	appName: 'Eternam ID',
 	projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
-	chains: [hardhat, sepolia],
+	chains: [sepolia],
 	ssr: true, // If your dApp uses server side rendering (SSR)
 });
 
