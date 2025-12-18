@@ -1,4 +1,4 @@
-export const CONTRACT_USDC_ADDRESS = "0xBDA13fB352Bc884E89D13ea67ac4ff7a91aD485f";
+export const CONTRACT_USDC_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 export const CONTRACT_USDC_ABI = [
     {
         "inputs": [
@@ -349,7 +349,7 @@ export const CONTRACT_USDC_ABI = [
     }
 ]
 
-export const CONTRACT_ETERNAMID_ADDRESS = "0x74d33B15d1D8FE26a5Ec7b656C6e2a735B8a4B13";
+export const CONTRACT_ETERNAMID_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 export const CONTRACT_ETERNAMID_ABI = [
     {
         "inputs": [
