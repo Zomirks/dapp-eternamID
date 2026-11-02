@@ -7,7 +7,7 @@
 
 EternamID preserves the memory of loved ones on-chain. Each ERC-721 token anchors a keccak256 fingerprint of a biography stored off-chain and can reference parent tokens to build a family tree. Mints are paid in a mock of USDC, with a pull-based referral programme.
 
-Built solo in December 2025 as a full-stack dApp: smart contract, tests, CI, database and web interface.
+Certification project for Alyra, the blockchain school (December 2025). Sole developer in a team with three blockchain consultants, responsible for the smart contract, tests, CI, database and web interface.
 
 ## Live deployment
 
